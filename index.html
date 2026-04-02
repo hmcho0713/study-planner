@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>우리반 학습 플래너</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+    .app { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
+    .header { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header span { font-size: 13px; color: #888; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+    .stat { background: #f0f0f0; border-radius: 10px; padding: 1rem; }
+    .stat .label { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .stat .value { font-size: 24px; font-weight: 600; }
+    .section { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .section-title { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .task { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .task:last-of-type { border-bottom: none; }
+    .task-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .task-check.done { background: #1D9E75; border-color: #1D9E75; }
+    .task-check.done::after { content: '✓'; color: white; font-size: 11px; }
+    .task-info { flex: 1; }
+    .task-title { font-size: 14px; }
+    .task-title.done { text-decoration: line-through; color: #aaa; }
+    .task-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+    .badge-수학 { background: #E6F1FB; color: #185FA5; }
+    .badge-영어 { background: #EAF3DE; color: #3B6D11; }
+    .badge-과학 { background: #FAEEDA; color: #854F0B; }
+    .badge-국어 { background: #FBEAF0; color: #993556; }
+    .badge-기타 { background: #f0f0f0; color: #555; }
+    .dday-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .dday-item:last-of-type { border-bottom: none; }
+    .dday-name { font-size: 14px; }
+    .dday-date { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .dday-count { font-size: 15px; font-weight: 600; color: #D85A30; }
+    .add-row { display: flex; gap: 8px; margin-top: 12px; }
+    .add-row input, .add-row select { height: 36px; background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 8px; padding: 0 12px; font-size: 14px; outline: none; }
+    .add-row input { flex: 1; }
+    .add-row button { height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid #ddd; background: white; font-size: 14px; cursor: pointer; }
+    .add-row button:hover { background: #f5f5f5; }
+    .delete-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 0 4px; }
+    .delete-btn:hover { color: #e24b4a; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>우리반 학습 플래너</h1>
+      <span id="today-date"></span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">오늘 할일</div><div class="value" id="stat-total">0</div></div>
+      <div class="stat"><div class="label">완료</div><div class="value" id="stat-done">0</div></div>
+      <div class="stat"><div class="label">D-day 항목</div><div class="value" id="stat-dday">0</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">할일 목록</div>
+      <div id="task-list"></div>
+      <div class="add-row">
+        <input id="task-input" placeholder="할일 입력..." />
+        <input id="name-input" placeholder="이름" style="width:80px" />
+        <select id="subject-select">
+          <option value="수학">수학</option>
+          <option value="영어">영어</option>
+          <option value="과학">과학</option>
+          <option value="국어">국어</option>
+          <option value="기타">기타</option>
+        </select>
+        <button onclick="addTask()">+ 추가</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">시험 D-day</div>
+      <div id="dday-list"></div>
+      <div class="add-row">
+        <input id="dday-name-input" placeholder="시험 이름..." />
+        <input id="dday-date-input" type="date" style="width:140px" />
+        <button onclick="addDday()">+ 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let ddays = JSON.parse(localStorage.getItem('ddays') || '[]');
+
+    function save() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      localStorage.setItem('ddays', JSON.stringify(ddays));
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = tasks.length;
+      document.getElementById('stat-done').textContent = tasks.filter(t => t.done).length;
+      document.getElementById('stat-dday').textContent = ddays.length;
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('task-list');
+      list.innerHTML = tasks.map((t, i) => `
+        <div class="task">
+          <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask(${i})"></div>
+          <div class="task-info">
+            <div class="task-title ${t.done ? 'done' : ''}">${t.title}</div>
+            <div class="task-sub">${t.name}</div>
+          </div>
+          <span class="badge badge-${t.subject}">${t.subject}</span>
+          <button class="delete-btn" onclick="deleteTask(${i})">×</button>
+        </div>
+      `).join('');
+      updateStats();
+    }
+
+    function renderDdays() {
+      const list = document.getElementById('dday-list');
+      const today = new Date(); today.setHours(0,0,0,0);
+      list.innerHTML = ddays.map((d, i) => {
+        const target = new Date(d.date);
+        const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+        const label = diff > 0 ? `D-${diff}` : diff === 0 ? 'D-Day' : `D+${Math.abs(diff)}`;
+        return `
+          <div class="dday-item">
+            <div>
+              <div class="dday-name">${d.name}</div>
+              <div class="dday-date">${d.date}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="dday-count">${label}</span>
+              <button class="delete-btn" onclick="deleteDday(${i})">×</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      updateStats();
+    }
+
+    function addTask() {
+      const title = document.getElementById('task-input').value.trim();
+      const name = document.getElementById('name-input').value.trim() || '익명';
+      const subject = document.getElementById('subject-select').value;
+      if (!title) return;
+      tasks.push({ title, name, subject, done: false });
+      save(); renderTasks();
+      document.getElementById('task-input').value = '';
+      document.getElementById('name-input').value = '';
+    }
+
+    function toggleTask(i) { tasks[i].done = !tasks[i].done; save(); renderTasks(); }
+    function deleteTask(i) { tasks.splice(i, 1); save(); renderTasks(); }
+
+    function addDday() {
+      const name = document.getElementById('dday-name-input').value.trim();
+      const date = document.getElementById('dday-date-input').value;
+      if (!name || !date) return;
+      ddays.push({ name, date });
+      save(); renderDdays();
+      document.getElementById('dday-name-input').value = '';
+      document.getElementById('dday-date-input').value = '';
+    }
+
+    function deleteDday(i) { ddays.splice(i, 1); save(); renderDdays(); }
+
+    document.getElementById('today-date').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+    document.getElementById('task-input').addEventListener('keydown', e => e.key === 'Enter' && addTask());
+    document.getElementById('dday-name-input').addEventListener('keydown', e => e.key === 'Enter' && addDday());
+
+    renderTasks();
+    renderDdays();
+  </script>
+</body>
+</html>
