@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>플래너 - 우리반 플래너</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .planner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .planner-header h2 { font-size: 16px; font-weight: 600; }
+    .view-tabs { display: flex; gap: 6px; margin-bottom: 1rem; }
+    .view-tab { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e5e5e5; background: white; font-size: 13px; cursor: pointer; text-align: center; }
+    .view-tab.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .calendar-day-header { text-align: center; font-size: 11px; color: #aaa; padding: 6px 0; font-weight: 600; }
+    .calendar-day { min-height: 60px; border: 1px solid #f0f0f0; border-radius: 6px; padding: 4px; cursor: pointer; }
+    .calendar-day:hover { background: #f5f5f5; }
+    .calendar-day.today { border-color: #1a1a2e; }
+    .calendar-day.other-month { opacity: 0.3; }
+    .calendar-day .day-num { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+    .calendar-day .day-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; margin: 1px auto; }
+    .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .month-nav button { background: none; border: 1px solid #e5e5e5; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+    .month-nav span { font-size: 15px; font-weight: 600; }
+    .goal-box { background: #f5f5f5; border-radius: 8px; padding: 12px; margin-bottom: 1rem; }
+    .goal-box textarea { width: 100%; border: none; background: transparent; font-size: 14px; resize: none; outline: none; font-family: inherit; }
+    .goal-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 1rem; }
+    .week-col { background: #f5f5f5; border-radius: 8px; padding: 8px; }
+    .week-col-header { font-size: 11px; font-weight: 600; color: #888; text-align: center; margin-bottom: 4px; }
+    .week-col-date { font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+    .week-col.today-col { background: #1a1a2e; color: white; }
+    .week-col.today-col .week-col-header { color: #aaa; }
+    .week-col textarea { width: 100%; border: none; background: transparent; font-size: 12px; resize: none; outline: none; font-family: inherit; min-height: 80px; color: inherit; }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .check-item:last-of-type { border-bottom: none; }
+    .check-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+    .check-item span { font-size: 14px; flex: 1; }
+    .check-item span.done { text-decoration: line-through; color: #aaa; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand">우리반 플래너</div>
+    <a href="index.html">🏠 메인</a>
+    <!--<a href="community.html">💬 소통</a>-->
+    <a href="planner.html" class="active">📝 플래너</a>
+    <a href="timer.html">⏱️ 타이머</a>
+    <a href="study.html">📚 공부공유</a>
+    <span class="nav-logout" onclick="logout()">로그아웃</span>
+  </nav>
+  <div class="app">
+    <div class="planner-header">
+      <h2>📝 <span id="user-name-display"></span>의 플래너</h2>
+    </div>
+    <div class="view-tabs">
+      <div class="view-tab active" onclick="switchView('month', this)">월간</div>
+      <div class="view-tab" onclick="switchView('week', this)">주간</div>
+      <div class="view-tab" onclick="switchView('day', this)">일간</div>
+    </div>
+    <div id="view-month">
+      <div class="section">
+        <div class="goal-label">월간 목표</div>
+        <div class="goal-box"><textarea id="month-goal" rows="3" placeholder="이번 달 목표를 입력해봐..." onblur="saveGoal()"></textarea></div>
+        <div class="month-nav">
+          <button onclick="changeMonth(-1)">◀</button>
+          <span id="month-title"></span>
+          <button onclick="changeMonth(1)">▶</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">일</div>
+          <div class="calendar-day-header">월</div>
+          <div class="calendar-day-header">화</div>
+          <div class="calendar-day-header">수</div>
+          <div class="calendar-day-header">목</div>
+          <div class="calendar-day-header">금</div>
+          <div class="calendar-day-header">토</div>
+        </div>
+        <div class="calendar-grid" id="calendar-body"></div>
+      </div>
+    </div>
+    <div id="view-week" style="display:none">
+      <div class="section">
+        <div class="goal-label">주간 목표</div>
+        <div class="goal-box"><textarea id="week-goal" rows="2" placeholder="이번 주 목표를 입력해봐..." onblur="saveGoal()"></textarea></div>
+        <div class="month-nav">
+          <button onclick="changeWeek(-1)">◀</button>
+          <span id="week-title"></span>
+          <button onclick="changeWeek(1)">▶</button>
+        </div>
+        <div class="week-grid" id="week-body"></div>
+      </div>
+    </div>
+    <div id="view-day" style="display:none">
+      <div class="section">
+        <div class="month-nav">
+          <button onclick="changeDay(-1)">◀</button>
+          <span id="day-title"></span>
+          <button onclick="changeDay(1)">▶</button>
+        </div>
+        <div class="checklist" id="day-checklist"></div>
+        <div class="add-row" style="margin-top:12px">
+          <input id="day-task-input" placeholder="할일 추가..." />
+          <button onclick="addDayTask()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    let pdata = { users: [], planners: [] }
+    let currentMonth = new Date()
+    let currentWeekStart = getMonday(new Date())
+    let selectedDay = new Date()
+
+    function getMonday(d) {
+      const day = d.getDay()
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+      return new Date(new Date(d).setDate(diff))
+    }
+
+    function dateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    }
+
+    async function loadPdata() {
+      const res = await fetch(PLANNER_URL + '/latest', { headers: HEADERS })
+      const json = await res.json()
+      pdata = json.record
+    }
+
+    async function savePdata() {
+      await fetch(PLANNER_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(pdata) })
+    }
+
+    function getMyPlanner() {
+      let p = pdata.planners.find(p => p.name === currentUser.name)
+      if (!p) { p = { name: currentUser.name, goals: {}, days: {}, weekGoals: {} }; pdata.planners.push(p) }
+      return p
+    }
+
+    function switchView(view, el) {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'))
+      el.classList.add('active')
+      document.getElementById('view-month').style.display = view === 'month' ? 'block' : 'none'
+      document.getElementById('view-week').style.display = view === 'week' ? 'block' : 'none'
+      document.getElementById('view-day').style.display = view === 'day' ? 'block' : 'none'
+    }
+
+    function renderMonth() {
+      const planner = getMyPlanner()
+      const monthKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`
+      document.getElementById('month-goal').value = planner.goals[monthKey] || ''
+      document.getElementById('month-title').textContent = `${currentMonth.getFullYear()}년 ${currentMonth.getMonth()+1}월`
+      const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
+      const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 0)
+      const today = new Date(); today.setHours(0,0,0,0)
+      let html = ''
+      for (let i = 0; i < firstDay.getDay(); i++) {
+        const d = new Date(firstDay); d.setDate(d.getDate() - (firstDay.getDay() - i))
+        html += `<div class="calendar-day other-month"><div class="day-num">${d.getDate()}</div></div>`
+      }
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d)
+        const key = dateKey(date)
+        const isToday = date.getTime() === today.getTime()
+        const tasks = planner.days[key]?.tasks || []
+        html += `
+          <div class="calendar-day ${isToday ? 'today' : ''}" onclick="goToDay('${key}')">
+            <div class="day-num">${d}</div>
+            ${tasks.length > 0 ? '<div class="day-dot"></div>' : ''}
+          </div>
+        `
+      }
+      document.getElementById('calendar-body').innerHTML = html
+    }
+
+    function changeMonth(dir) {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + dir, 1)
+      renderMonth()
+    }
+
+    function goToDay(key) {
+      selectedDay = new Date(key)
+      switchView('day', document.querySelectorAll('.view-tab')[2])
+      renderDay()
+    }
+
+    function renderWeek() {
+      const planner = getMyPlanner()
+      const weekKey = dateKey(currentWeekStart)
+      document.getElementById('week-goal').value = planner.weekGoals[weekKey] || ''
+      const days = ['월', '화', '수', '목', '금', '토', '일']
+      const today = new Date(); today.setHours(0,0,0,0)
+      let html = ''
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(currentWeekStart); d.setDate(d.getDate() + i)
+        const key = dateKey(d)
+        const isToday = d.getTime() === today.getTime()
+        const plan = planner.days[key]?.weekPlan || ''
+        html += `
+          <div class="week-col ${isToday ? 'today-col' : ''}">
+            <div class="week-col-header">${days[i]}</div>
+            <div class="week-col-date">${d.getDate()}</div>
+            <textarea placeholder="계획..." onblur="saveWeekPlan('${key}', this.value)">${plan}</textarea>
+          </div>
+        `
+      }
+      document.getElementById('week-body').innerHTML = html
+      const endOfWeek = new Date(currentWeekStart); endOfWeek.setDate(endOfWeek.getDate() + 6)
+      document.getElementById('week-title').textContent = `${currentWeekStart.getMonth()+1}/${currentWeekStart.getDate()} ~ ${endOfWeek.getMonth()+1}/${endOfWeek.getDate()}`
+    }
+
+    function changeWeek(dir) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + dir * 7)
+      renderWeek()
+    }
+
+    async function saveWeekPlan(key, value) {
+      const planner = getMyPlanner()
+      if (!planner.days[key]) planner.days[key] = { tasks: [], weekPlan: '' }
+      planner.days[key].weekPlan = value
+      savePdata()
+    }
+
+    function renderDay() {
+      const planner = getMyPlanner()
+      const key = dateKey(selectedDay)
+      const tasks = planner.days[key]?.tasks || []
+      document.getElementById('day-title').textContent = selectedDay.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+      document.getElementById('day-checklist').innerHTML = tasks.map((t, i) => `
+        <div class="check-item">
+          <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDayTask('${key}', ${i})">
+          <span class="${t.done ? 'done' : ''}">${t.title}</span>
+          <button class="delete-btn" onclick="deleteDayTask('${key}', ${i})">×</button>
+        </div>
+      `).join('')
+    }
+
+    function changeDay(dir) {
+      selectedDay = new Date(selectedDay); selectedDay.setDate(selectedDay.getDate() + dir)
+      renderDay()
+    }
+
+    async function addDayTask() {
+      const title = document.getElementById('day-task-input').value.trim()
+      if (!title) return
+      const planner = getMyPlanner()
+      const key = dateKey(selectedDay)
+      if (!planner.days[key]) planner.days[key] = { tasks: [], weekPlan: '' }
+      planner.days[key].tasks.push({ title, done: false })
+      renderDay(); savePdata()
+      document.getElementById('day-task-input').value = ''
+    }
+
+    async function toggleDayTask(key, i) {
+      const planner = getMyPlanner()
+      planner.days[key].tasks[i].done = !planner.days[key].tasks[i].done
+      renderDay(); savePdata()
+    }
+
+    async function deleteDayTask(key, i) {
+      const planner = getMyPlanner()
+      planner.days[key].tasks.splice(i, 1)
+      renderDay(); savePdata()
+    }
+
+    async function saveGoal() {
+      const planner = getMyPlanner()
+      const monthKey = `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`
+      const weekKey = dateKey(currentWeekStart)
+      planner.goals[monthKey] = document.getElementById('month-goal').value
+      planner.weekGoals[weekKey] = document.getElementById('week-goal').value
+      savePdata()
+    }
+
+    async function onLoginSuccess() {
+      await loadPdata()
+      document.getElementById('user-name-display').textContent = currentUser.name
+      renderMonth(); renderWeek(); renderDay()
+    }
+
+    document.getElementById('day-task-input').addEventListener('keydown', e => e.key === 'Enter' && addDayTask())
+
+    async function init() {
+      if (requireLogin()) {
+        await loadPdata()
+        document.getElementById('user-name-display').textContent = currentUser.name
+        renderMonth(); renderWeek(); renderDay()
+      }
+    }
+    init()
+  </script>
+</body>
+</html>

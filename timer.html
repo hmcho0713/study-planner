@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>타이머 - 우리반 플래너</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand">우리반 플래너</div>
+    <a href="index.html">🏠 메인</a>
+    <!--<a href="community.html">💬 소통</a>-->
+    <a href="planner.html">📝 플래너</a>
+    <a href="timer.html" class="active">⏱️ 타이머</a>
+    <a href="study.html">📚 공부공유</a>
+    <span class="nav-logout" onclick="logout()">로그아웃</span>
+  </nav>
+  <div class="app">
+    <div class="section">
+      <div class="section-title">공부 타이머</div>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+      <div class="timer-buttons">
+        <button onclick="startTimer()">시작</button>
+        <button onclick="pauseTimer()">일시정지</button>
+        <button onclick="resetTimer()">초기화</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    let timerInterval = null
+    let timerSeconds = 0
+
+    function updateTimerDisplay() {
+      const h = String(Math.floor(timerSeconds / 3600)).padStart(2, '0')
+      const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, '0')
+      const s = String(timerSeconds % 60).padStart(2, '0')
+      document.getElementById('timer-display').textContent = `${h}:${m}:${s}`
+    }
+
+    function startTimer() { if (timerInterval) return; timerInterval = setInterval(() => { timerSeconds++; updateTimerDisplay() }, 1000) }
+    function pauseTimer() { clearInterval(timerInterval); timerInterval = null }
+    function resetTimer() { pauseTimer(); timerSeconds = 0; updateTimerDisplay() }
+
+    async function onLoginSuccess() {}
+    requireLogin()
+  </script>
+</body>
+</html>

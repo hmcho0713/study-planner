@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>소통 - 우리반 플래너</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand">우리반 플래너</div>
+    <a href="index.html">🏠 메인</a>
+    <a href="community.html" class="active">💬 소통</a>
+    <a href="planner.html">📝 플래너</a>
+    <a href="timer.html">⏱️ 타이머</a>
+    <a href="study.html">📚 공부공유</a>
+    <span class="nav-logout" onclick="logout()">로그아웃</span>
+  </nav>
+  <div class="app">
+    <div class="section">
+      <div class="section-title">소통</div>
+      <div id="post-list"><div class="loading">불러오는 중...</div></div>
+      <div class="add-row" style="flex-direction:column">
+        <input id="post-content" placeholder="메시지 입력..." />
+        <button onclick="addPost()" style="align-self:flex-end;margin-top:6px">+ 올리기</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    function renderPosts() {
+      const list = document.getElementById('post-list')
+      if (!data.posts || data.posts.length === 0) { list.innerHTML = '<div class="loading">아직 글이 없어요!</div>'; return }
+      list.innerHTML = [...data.posts].reverse().map(p => `
+        <div class="post-item">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="post-name">${p.name}</div>
+              <div class="post-content">${p.content}</div>
+            </div>
+            <div class="post-time" style="flex-shrink:0;margin-left:12px">${p.time}</div>
+          </div>
+        </div>
+      `).join('')
+    }
+
+    async function addPost() {
+      if (!requireLogin()) return
+      const content = document.getElementById('post-content').value.trim()
+      if (!content) return
+      const time = new Date().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      data.posts.push({ name: currentUser.name, content, time })
+      renderPosts(); save()
+      document.getElementById('post-content').value = ''
+    }
+
+    async function load() {
+      document.getElementById('post-list').innerHTML = `<div class="task"><div class="task-info"><div class="skeleton long"></div><div class="skeleton short"></div></div></div>`
+      const res = await fetch(BASE_URL + '/latest', { headers: HEADERS })
+      const json = await res.json()
+      data = json.record
+      renderPosts()
+    }
+
+    async function onLoginSuccess() { await load() }
+    document.getElementById('post-content').addEventListener('keydown', e => e.key === 'Enter' && addPost())
+    if (requireLogin()) load()
+  </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>공부 공유 - 우리반 플래너</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-brand">우리반 플래너</div>
+    <a href="index.html">🏠 메인</a>
+    <!--<a href="community.html">💬 소통</a>-->
+    <a href="planner.html">📝 플래너</a>
+    <a href="timer.html">⏱️ 타이머</a>
+    <a href="study.html" class="active">📚 공부공유</a>
+    <span class="nav-logout" onclick="logout()">로그아웃</span>
+  </nav>
+  <div class="app">
+    <div class="section">
+      <div class="section-title">공부한거 공유</div>
+      <div id="study-list"><div class="loading">불러오는 중...</div></div>
+      <div class="add-row" style="flex-direction:column">
+        <div style="display:flex;gap:8px">
+          <input id="study-subject" placeholder="과목" style="width:80px;flex:none" />
+          <input id="study-content" placeholder="공부한 내용..." />
+        </div>
+        <button onclick="addStudy()" style="align-self:flex-end;margin-top:6px">+ 공유</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    function renderStudies() {
+      const list = document.getElementById('study-list')
+      if (!data.studies || data.studies.length === 0) { list.innerHTML = '<div class="loading">아직 공유된 내용이 없어요!</div>'; return }
+      list.innerHTML = [...data.studies].reverse().map(s => `
+        <div class="study-item">
+          <div class="study-left">
+            <div class="study-name">${s.name}</div>
+            <div class="study-content">${s.content}</div>
+          </div>
+          <span class="study-subject">${s.subject}</span>
+        </div>
+      `).join('')
+    }
+
+    async function addStudy() {
+      if (!requireLogin()) return
+      const subject = document.getElementById('study-subject').value.trim()
+      const content = document.getElementById('study-content').value.trim()
+      if (!subject || !content) return
+      data.studies.push({ name: currentUser.name, subject, content })
+      renderStudies(); save()
+      document.getElementById('study-subject').value = ''
+      document.getElementById('study-content').value = ''
+    }
+
+    async function load() {
+      document.getElementById('study-list').innerHTML = `<div class="task"><div class="task-info"><div class="skeleton long"></div><div class="skeleton short"></div></div></div>`
+      const res = await fetch(BASE_URL + '/latest', { headers: HEADERS })
+      const json = await res.json()
+      data = json.record
+      renderStudies()
+    }
+
+    async function onLoginSuccess() { await load() }
+    document.getElementById('study-content').addEventListener('keydown', e => e.key === 'Enter' && addStudy())
+    if (requireLogin()) load()
+  </script>
+</body>
+</html>
