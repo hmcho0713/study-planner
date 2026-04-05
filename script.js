@@ -69,20 +69,28 @@ async function handleOverlayAuth() {
   const name = document.getElementById('overlay-name').value.trim()
   const pw = document.getElementById('overlay-pw').value.trim()
   if (!name || !pw) { document.getElementById('overlay-error').textContent = '이름과 비밀번호를 입력해줘!'; return }
+
+  // 로딩 표시
+  const btn = document.querySelector('#login-overlay button')
+  btn.textContent = '확인 중...'
+  btn.disabled = true
+
   const res = await fetch(PLANNER_URL + '/latest', { headers: HEADERS })
   const json = await res.json()
   const pdata = json.record
   const user = pdata.users.find(u => u.name === name)
+
   if (overlayIsLogin) {
-    if (!user) { document.getElementById('overlay-error').textContent = '존재하지 않는 계정이야!'; return }
-    if (user.pw !== pw) { document.getElementById('overlay-error').textContent = '비밀번호가 틀렸어!'; return }
+    if (!user) { document.getElementById('overlay-error').textContent = '존재하지 않는 계정이야!'; btn.textContent = '확인'; btn.disabled = false; return }
+    if (user.pw !== pw) { document.getElementById('overlay-error').textContent = '비밀번호가 틀렸어!'; btn.textContent = '확인'; btn.disabled = false; return }
     currentUser = user
   } else {
-    if (user) { document.getElementById('overlay-error').textContent = '이미 존재하는 이름이야!'; return }
+    if (user) { document.getElementById('overlay-error').textContent = '이미 존재하는 이름이야!'; btn.textContent = '확인'; btn.disabled = false; return }
     currentUser = { name, pw }
     pdata.users.push(currentUser)
     await fetch(PLANNER_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(pdata) })
   }
+
   localStorage.setItem('planner-user', JSON.stringify(currentUser))
   hideLoginOverlay()
   if (typeof onLoginSuccess === 'function') onLoginSuccess()

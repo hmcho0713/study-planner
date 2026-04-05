@@ -5,107 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>플래너 - 우리반 플래너</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
   <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 40px; height: 40px; border: 3px solid #f0f0f0; border-top: 3px solid #1a1a2e; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+    .loading-screen p { font-size: 14px; color: #aaa; }
+
     .planner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .planner-header h2 { font-size: 16px; font-weight: 600; }
     .view-tabs { display: flex; gap: 6px; margin-bottom: 1rem; }
     .view-tab { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e5e5e5; background: white; font-size: 13px; cursor: pointer; text-align: center; }
     .view-tab.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .calendar-day-header { text-align: center; font-size: 11px; color: #aaa; padding: 6px 0; font-weight: 600; }
-    .calendar-day { min-height: 60px; border: 1px solid #f0f0f0; border-radius: 6px; padding: 4px; cursor: pointer; }
-    .calendar-day:hover { background: #f5f5f5; }
+    .calendar-day { height: 80px; border: 1px solid #f0f0f0; border-radius: 6px; padding: 4px; cursor: pointer; overflow: hidden; }
+    .calendar-day:hover { background: #f9f9f9; }
     .calendar-day.today { border-color: #1a1a2e; }
     .calendar-day.other-month { opacity: 0.3; }
-    .calendar-day .day-num { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
-    .calendar-day .day-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; margin: 1px auto; }
+    .calendar-day .day-num { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+    .calendar-day.today .day-num { color: #1a1a2e; }
+    .cal-task { font-size: 10px; padding: 1px 3px; border-radius: 3px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-task.done { text-decoration: line-through; opacity: 0.5; }
+    .cal-more { font-size: 10px; color: #aaa; padding: 1px 3px; }
+
     .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .month-nav button { background: none; border: 1px solid #e5e5e5; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
     .month-nav span { font-size: 15px; font-weight: 600; }
+    .goal-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
     .goal-box { background: #f5f5f5; border-radius: 8px; padding: 12px; margin-bottom: 1rem; }
     .goal-box textarea { width: 100%; border: none; background: transparent; font-size: 14px; resize: none; outline: none; font-family: inherit; }
-    .goal-label { font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+
     .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 1rem; }
-    .week-col { background: #f5f5f5; border-radius: 8px; padding: 8px; }
+    .week-col { background: #f5f5f5; border-radius: 8px; padding: 8px; min-height: 120px; }
     .week-col-header { font-size: 11px; font-weight: 600; color: #888; text-align: center; margin-bottom: 4px; }
-    .week-col-date { font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+    .week-col-date { font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 8px; cursor: pointer; }
     .week-col.today-col { background: #1a1a2e; color: white; }
     .week-col.today-col .week-col-header { color: #aaa; }
-    .week-col textarea { width: 100%; border: none; background: transparent; font-size: 12px; resize: none; outline: none; font-family: inherit; min-height: 80px; color: inherit; }
-    .check-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .week-task { font-size: 11px; padding: 2px 4px; border-radius: 3px; margin-bottom: 2px; background: rgba(255,255,255,0.15); }
+    .week-task.done { text-decoration: line-through; opacity: 0.5; }
+    .week-task-light { background: rgba(0,0,0,0.06); }
+    .week-empty { font-size: 11px; color: #bbb; text-align: center; margin-top: 12px; }
+
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     .check-item:last-of-type { border-bottom: none; }
     .check-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
-    .check-item span { font-size: 14px; flex: 1; }
-    .check-item span.done { text-decoration: line-through; color: #aaa; }
+    .check-item .task-info { flex: 1; }
+    .check-item .task-title { font-size: 14px; }
+    .check-item .task-title.done { text-decoration: line-through; color: #aaa; }
+    .check-item .task-subject { font-size: 11px; padding: 1px 6px; border-radius: 10px; margin-top: 2px; display: inline-block; }
+
+    .subj-국어 { background: #FBEAF0; color: #993556; }
+    .subj-수학 { background: #E6F1FB; color: #185FA5; }
+    .subj-영어 { background: #EAF3DE; color: #3B6D11; }
+    .subj-과학 { background: #FAEEDA; color: #854F0B; }
+    .subj-사회 { background: #EAF3DE; color: #3B6D11; }
+    .subj-기타 { background: #f0f0f0; color: #555; }
+
+    .day-input-row { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    .day-input-row input { height: 36px; background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 8px; padding: 0 12px; font-size: 14px; outline: none; flex: 1; min-width: 80px; }
+    .day-input-row select { height: 36px; background: #f5f5f5; border: 1px solid #e5e5e5; border-radius: 8px; padding: 0 8px; font-size: 14px; outline: none; }
+    .day-input-row button { height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid #ddd; background: white; font-size: 14px; cursor: pointer; }
+    .day-input-row button:hover { background: #f5f5f5; }
   </style>
 </head>
 <body>
   <nav class="nav">
     <div class="nav-brand">우리반 플래너</div>
     <a href="index.html">🏠 메인</a>
-    <!--<a href="community.html">💬 소통</a>-->
     <a href="planner.html" class="active">📝 플래너</a>
     <a href="timer.html">⏱️ 타이머</a>
     <a href="study.html">📚 공부공유</a>
     <span class="nav-logout" onclick="logout()">로그아웃</span>
   </nav>
+
   <div class="app">
-    <div class="planner-header">
-      <h2>📝 <span id="user-name-display"></span>의 플래너</h2>
+
+    <!-- 로딩 화면 -->
+    <div class="loading-screen" id="loading-screen">
+      <div class="spinner"></div>
+      <p id="loading-text">불러오는 중...</p>
     </div>
-    <div class="view-tabs">
-      <div class="view-tab active" onclick="switchView('month', this)">월간</div>
-      <div class="view-tab" onclick="switchView('week', this)">주간</div>
-      <div class="view-tab" onclick="switchView('day', this)">일간</div>
-    </div>
-    <div id="view-month">
-      <div class="section">
-        <div class="goal-label">월간 목표</div>
-        <div class="goal-box"><textarea id="month-goal" rows="3" placeholder="이번 달 목표를 입력해봐..." onblur="saveGoal()"></textarea></div>
-        <div class="month-nav">
-          <button onclick="changeMonth(-1)">◀</button>
-          <span id="month-title"></span>
-          <button onclick="changeMonth(1)">▶</button>
-        </div>
-        <div class="calendar-grid">
-          <div class="calendar-day-header">일</div>
-          <div class="calendar-day-header">월</div>
-          <div class="calendar-day-header">화</div>
-          <div class="calendar-day-header">수</div>
-          <div class="calendar-day-header">목</div>
-          <div class="calendar-day-header">금</div>
-          <div class="calendar-day-header">토</div>
-        </div>
-        <div class="calendar-grid" id="calendar-body"></div>
+
+    <!-- 플래너 본문 -->
+    <div id="planner-content" style="display:none">
+      <div class="planner-header">
+        <h2>📝 <span id="user-name-display"></span>의 플래너</h2>
       </div>
-    </div>
-    <div id="view-week" style="display:none">
-      <div class="section">
-        <div class="goal-label">주간 목표</div>
-        <div class="goal-box"><textarea id="week-goal" rows="2" placeholder="이번 주 목표를 입력해봐..." onblur="saveGoal()"></textarea></div>
-        <div class="month-nav">
-          <button onclick="changeWeek(-1)">◀</button>
-          <span id="week-title"></span>
-          <button onclick="changeWeek(1)">▶</button>
-        </div>
-        <div class="week-grid" id="week-body"></div>
+
+      <div class="view-tabs">
+        <div class="view-tab active" onclick="switchView('month', this)">월간</div>
+        <div class="view-tab" onclick="switchView('week', this)">주간</div>
+        <div class="view-tab" onclick="switchView('day', this)">일간</div>
       </div>
-    </div>
-    <div id="view-day" style="display:none">
-      <div class="section">
-        <div class="month-nav">
-          <button onclick="changeDay(-1)">◀</button>
-          <span id="day-title"></span>
-          <button onclick="changeDay(1)">▶</button>
+
+      <!-- 월간 뷰 -->
+      <div id="view-month">
+        <div class="section">
+          <div class="goal-label">월간 목표</div>
+          <div class="goal-box">
+            <textarea id="month-goal" rows="2" placeholder="이번 달 목표를 입력해봐..." onblur="saveGoal()"></textarea>
+          </div>
+          <div class="month-nav">
+            <button onclick="changeMonth(-1)">◀</button>
+            <span id="month-title"></span>
+            <button onclick="changeMonth(1)">▶</button>
+          </div>
+          <div class="calendar-grid">
+            <div class="calendar-day-header">일</div>
+            <div class="calendar-day-header">월</div>
+            <div class="calendar-day-header">화</div>
+            <div class="calendar-day-header">수</div>
+            <div class="calendar-day-header">목</div>
+            <div class="calendar-day-header">금</div>
+            <div class="calendar-day-header">토</div>
+          </div>
+          <div class="calendar-grid" id="calendar-body"></div>
         </div>
-        <div class="checklist" id="day-checklist"></div>
-        <div class="add-row" style="margin-top:12px">
-          <input id="day-task-input" placeholder="할일 추가..." />
-          <button onclick="addDayTask()">+ 추가</button>
+      </div>
+
+      <!-- 주간 뷰 -->
+      <div id="view-week" style="display:none">
+        <div class="section">
+          <div class="goal-label">주간 목표</div>
+          <div class="goal-box">
+            <textarea id="week-goal" rows="2" placeholder="이번 주 목표를 입력해봐..." onblur="saveGoal()"></textarea>
+          </div>
+          <div class="month-nav">
+            <button onclick="changeWeek(-1)">◀</button>
+            <span id="week-title"></span>
+            <button onclick="changeWeek(1)">▶</button>
+          </div>
+          <div class="week-grid" id="week-body"></div>
+          <p style="font-size:12px;color:#aaa;text-align:center;margin-top:8px">날짜 클릭하면 일간 뷰로 이동해요</p>
+        </div>
+      </div>
+
+      <!-- 일간 뷰 -->
+      <div id="view-day" style="display:none">
+        <div class="section">
+          <div class="month-nav">
+            <button onclick="changeDay(-1)">◀</button>
+            <span id="day-title"></span>
+            <button onclick="changeDay(1)">▶</button>
+          </div>
+          <div id="day-checklist"></div>
+          <div class="day-input-row">
+            <input id="day-task-input" placeholder="할일 추가..." />
+            <select id="day-subject-select">
+              <option value="국어">국어</option>
+              <option value="수학">수학</option>
+              <option value="영어">영어</option>
+              <option value="과학">과학</option>
+              <option value="사회">사회</option>
+              <option value="기타">기타</option>
+            </select>
+            <button onclick="addDayTask()">+ 추가</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
   <script src="script.js"></script>
   <script>
     let pdata = { users: [], planners: [] }
@@ -114,9 +176,10 @@
     let selectedDay = new Date()
 
     function getMonday(d) {
-      const day = d.getDay()
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-      return new Date(new Date(d).setDate(diff))
+      const copy = new Date(d)
+      const day = copy.getDay()
+      const diff = copy.getDate() - day + (day === 0 ? -6 : 1)
+      return new Date(copy.setDate(diff))
     }
 
     function dateKey(d) {
@@ -139,12 +202,31 @@
       return p
     }
 
+    function getSubjClass(subject) {
+      const map = { '국어': 'subj-국어', '수학': 'subj-수학', '영어': 'subj-영어', '과학': 'subj-과학', '사회': 'subj-사회' }
+      return map[subject] || 'subj-기타'
+    }
+
+    function showPlanner() {
+      document.getElementById('loading-screen').style.display = 'none'
+      document.getElementById('planner-content').style.display = 'block'
+    }
+
+    function showLoading(text = '불러오는 중...') {
+      document.getElementById('loading-screen').style.display = 'flex'
+      document.getElementById('loading-text').textContent = text
+      document.getElementById('planner-content').style.display = 'none'
+    }
+
     function switchView(view, el) {
       document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'))
       el.classList.add('active')
       document.getElementById('view-month').style.display = view === 'month' ? 'block' : 'none'
       document.getElementById('view-week').style.display = view === 'week' ? 'block' : 'none'
       document.getElementById('view-day').style.display = view === 'day' ? 'block' : 'none'
+      if (view === 'month') renderMonth()
+      if (view === 'week') renderWeek()
+      if (view === 'day') renderDay()
     }
 
     function renderMonth() {
@@ -155,20 +237,32 @@
       const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
       const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 0)
       const today = new Date(); today.setHours(0,0,0,0)
+      const MAX_VISIBLE = 3
       let html = ''
+
       for (let i = 0; i < firstDay.getDay(); i++) {
         const d = new Date(firstDay); d.setDate(d.getDate() - (firstDay.getDay() - i))
         html += `<div class="calendar-day other-month"><div class="day-num">${d.getDate()}</div></div>`
       }
+
       for (let d = 1; d <= lastDay.getDate(); d++) {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d)
         const key = dateKey(date)
         const isToday = date.getTime() === today.getTime()
         const tasks = planner.days[key]?.tasks || []
+        const visible = tasks.slice(0, MAX_VISIBLE)
+        const remaining = tasks.length - MAX_VISIBLE
+
+        const taskHtml = visible.map(t => `
+          <div class="cal-task ${getSubjClass(t.subject)} ${t.done ? 'done' : ''}">${t.title}</div>
+        `).join('')
+
+        const moreHtml = remaining > 0 ? `<div class="cal-more">+${remaining}개</div>` : ''
+
         html += `
           <div class="calendar-day ${isToday ? 'today' : ''}" onclick="goToDay('${key}')">
             <div class="day-num">${d}</div>
-            ${tasks.length > 0 ? '<div class="day-dot"></div>' : ''}
+            ${taskHtml}${moreHtml}
           </div>
         `
       }
@@ -181,9 +275,8 @@
     }
 
     function goToDay(key) {
-      selectedDay = new Date(key)
+      selectedDay = new Date(key + 'T00:00:00')
       switchView('day', document.querySelectorAll('.view-tab')[2])
-      renderDay()
     }
 
     function renderWeek() {
@@ -193,34 +286,35 @@
       const days = ['월', '화', '수', '목', '금', '토', '일']
       const today = new Date(); today.setHours(0,0,0,0)
       let html = ''
+
       for (let i = 0; i < 7; i++) {
         const d = new Date(currentWeekStart); d.setDate(d.getDate() + i)
         const key = dateKey(d)
         const isToday = d.getTime() === today.getTime()
-        const plan = planner.days[key]?.weekPlan || ''
+        const tasks = planner.days[key]?.tasks || []
+
+        const taskHtml = tasks.length > 0
+          ? tasks.map(t => `<div class="week-task ${isToday ? '' : 'week-task-light'} ${t.done ? 'done' : ''}">${t.title}</div>`).join('')
+          : `<div class="week-empty">없음</div>`
+
         html += `
           <div class="week-col ${isToday ? 'today-col' : ''}">
             <div class="week-col-header">${days[i]}</div>
-            <div class="week-col-date">${d.getDate()}</div>
-            <textarea placeholder="계획..." onblur="saveWeekPlan('${key}', this.value)">${plan}</textarea>
+            <div class="week-col-date" onclick="goToDay('${key}')">${d.getDate()}</div>
+            ${taskHtml}
           </div>
         `
       }
+
       document.getElementById('week-body').innerHTML = html
       const endOfWeek = new Date(currentWeekStart); endOfWeek.setDate(endOfWeek.getDate() + 6)
       document.getElementById('week-title').textContent = `${currentWeekStart.getMonth()+1}/${currentWeekStart.getDate()} ~ ${endOfWeek.getMonth()+1}/${endOfWeek.getDate()}`
     }
 
     function changeWeek(dir) {
+      currentWeekStart = new Date(currentWeekStart)
       currentWeekStart.setDate(currentWeekStart.getDate() + dir * 7)
       renderWeek()
-    }
-
-    async function saveWeekPlan(key, value) {
-      const planner = getMyPlanner()
-      if (!planner.days[key]) planner.days[key] = { tasks: [], weekPlan: '' }
-      planner.days[key].weekPlan = value
-      savePdata()
     }
 
     function renderDay() {
@@ -228,41 +322,55 @@
       const key = dateKey(selectedDay)
       const tasks = planner.days[key]?.tasks || []
       document.getElementById('day-title').textContent = selectedDay.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+
+      if (tasks.length === 0) {
+        document.getElementById('day-checklist').innerHTML = '<div class="loading" style="padding:1rem">오늘 할일을 추가해봐!</div>'
+        return
+      }
+
       document.getElementById('day-checklist').innerHTML = tasks.map((t, i) => `
         <div class="check-item">
           <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleDayTask('${key}', ${i})">
-          <span class="${t.done ? 'done' : ''}">${t.title}</span>
+          <div class="task-info">
+            <div class="task-title ${t.done ? 'done' : ''}">${t.title}</div>
+            <span class="task-subject ${getSubjClass(t.subject)}">${t.subject || '기타'}</span>
+          </div>
           <button class="delete-btn" onclick="deleteDayTask('${key}', ${i})">×</button>
         </div>
       `).join('')
     }
 
     function changeDay(dir) {
-      selectedDay = new Date(selectedDay); selectedDay.setDate(selectedDay.getDate() + dir)
+      selectedDay = new Date(selectedDay)
+      selectedDay.setDate(selectedDay.getDate() + dir)
       renderDay()
     }
 
     async function addDayTask() {
       const title = document.getElementById('day-task-input').value.trim()
+      const subject = document.getElementById('day-subject-select').value
       if (!title) return
       const planner = getMyPlanner()
       const key = dateKey(selectedDay)
       if (!planner.days[key]) planner.days[key] = { tasks: [], weekPlan: '' }
-      planner.days[key].tasks.push({ title, done: false })
-      renderDay(); savePdata()
+      planner.days[key].tasks.push({ title, subject, done: false })
+      renderDay()
+      savePdata()
       document.getElementById('day-task-input').value = ''
     }
 
     async function toggleDayTask(key, i) {
       const planner = getMyPlanner()
       planner.days[key].tasks[i].done = !planner.days[key].tasks[i].done
-      renderDay(); savePdata()
+      renderDay()
+      savePdata()
     }
 
     async function deleteDayTask(key, i) {
       const planner = getMyPlanner()
       planner.days[key].tasks.splice(i, 1)
-      renderDay(); savePdata()
+      renderDay()
+      savePdata()
     }
 
     async function saveGoal() {
@@ -275,18 +383,22 @@
     }
 
     async function onLoginSuccess() {
+      showLoading('로그인 중...')
       await loadPdata()
       document.getElementById('user-name-display').textContent = currentUser.name
-      renderMonth(); renderWeek(); renderDay()
+      showPlanner()
+      renderMonth()
     }
 
     document.getElementById('day-task-input').addEventListener('keydown', e => e.key === 'Enter' && addDayTask())
 
     async function init() {
       if (requireLogin()) {
+        showLoading()
         await loadPdata()
         document.getElementById('user-name-display').textContent = currentUser.name
-        renderMonth(); renderWeek(); renderDay()
+        showPlanner()
+        renderMonth()
       }
     }
     init()
